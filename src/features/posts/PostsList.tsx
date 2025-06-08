@@ -1,19 +1,20 @@
 import { Link } from 'react-router';
-import { useAppSelector } from '../../app/hooks';
-import { selectAllPosts } from './postsSlice';
+import { useAppDispatch, useAppSelector } from '../../app/hooks';
+import { fetchPosts, selectAllPosts, selectPostsError, selectPostsStatus } from './postsSlice';
 import { PostAuthor } from './PostAuthor';
 import { TimeAgo } from '../../components/TimeAgo';
 import { ReactionButtons } from './ReactionButtons';
-import React from 'react';
+import React, { useEffect } from 'react';
+import {Spinner} from '../../components/Spinner'
+import type { Post } from './postsSlice';
 
-export const PostsList = () => {
-  // const posts = useAppSelector((state) => state.posts);
-  const posts = useAppSelector(selectAllPosts);
-  const orderedPosts = posts
-    .slice()
-    .sort((a, b) => b.date.localeCompare(a.date));
 
-  const renderedPosts = orderedPosts.map((post: any) => (
+interface PostExcerptProps {
+  post: Post
+}
+
+function PostExcerpt({ post }: PostExcerptProps) {
+  return (
     <article className="post-excerpt" key={post.id}>
       <h3>
         <Link to={`/posts/${post.id}`}>{post.title}</Link>
@@ -25,12 +26,42 @@ export const PostsList = () => {
       <p className="post-content">{post.content.substring(0, 100)}</p>
       <ReactionButtons post={post} />
     </article>
-  ));
+  )
+}
+
+export const PostsList = () => {
+  const posts = useAppSelector(selectAllPosts);
+  const dispatch = useAppDispatch();
+  const postStatus = useAppSelector(selectPostsStatus);
+  const postsError = useAppSelector(selectPostsError);
+  
+
+  useEffect(() => {
+    if (postStatus === 'idle') {
+      dispatch(fetchPosts())
+    }
+  }, [postStatus, dispatch])
+
+  let content: React.ReactNode
+
+  if (postStatus === 'pending') {
+    content = <Spinner text="Loading..." />
+  } else if (postStatus === 'succeeded') {
+    const orderedPosts = posts
+      .slice()
+      .sort((a, b) => b.date.localeCompare(a.date))
+
+    content = orderedPosts.map(post => (
+      <PostExcerpt key={post.id} post={post} />
+    ))
+  } else if (postStatus === 'rejected') {
+    content = <div>{postsError}</div>
+  }
 
   return (
     <section className="posts-list">
       <h2>Posts</h2>
-      {renderedPosts}
+      {content}
     </section>
   );
 };

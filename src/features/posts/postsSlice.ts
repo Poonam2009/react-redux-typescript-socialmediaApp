@@ -39,6 +39,15 @@ export interface Post {
 export type ReactionName = keyof Reactions;
 
 type PostUpdate = Pick<Post, 'id' | 'title' | 'content'>;
+type NewPost = Pick<Post, 'title' | 'content' | 'user'>
+
+export const addNewPost = createAppAsyncThunk(
+  'posts/addNewPost',
+  async (initialPost: NewPost) => {
+    const response = await client.post<Post>('/fakeApi/posts', initialPost)
+    return response.data
+  }
+)
 
 const initialReactions: Reactions = {
   thumbsUp: 0,
@@ -65,39 +74,54 @@ export const postsSlice = createSlice({
   name: 'posts',
   initialState,
   reducers: {
-    postAdded: {
-      reducer(state, action: PayloadAction<Post>) {
-        state.posts.push(action.payload)
-      },
-      prepare(title: string, content: string, userId: string) {
-        return {
-          payload: {
-            id: nanoid(),
-            title,
-            content,
-            user: userId,
-            date: new Date().toISOString(),
-            reactions: initialReactions,
-          },
-        };
-      },
-    },
+    // postAdded: {
+    //   reducer(state, action: PayloadAction<Post>) {
+    //     state.posts.push(action.payload)
+    //   },
+    //   prepare(title: string, content: string, userId: string) {
+    //     return {
+    //       payload: {
+    //         id: nanoid(),
+    //         title,
+    //         content,
+    //         user: userId,
+    //         date: new Date().toISOString(),
+    //         reactions: initialReactions,
+    //       },
+    //     };
+    //   },
+    // },
+    // postUpdated(state, action: PayloadAction<PostUpdate>) {
+    //   const { id, title, content } = action.payload;
+    //   const existingPost = state.posts.find((post) => post.id === id);
+    //   if (existingPost) {
+    //     existingPost.title = title;
+    //     existingPost.content = content;
+    //   }
+    // },
+    // reactionAdded(
+    //   state,
+    //   action: PayloadAction<{ postId: string; reaction: ReactionName }>
+    // ) {
+    //   const { postId, reaction } = action.payload;
+    //   const existingPost = state.posts.find((post) => post.id === postId);
+    //   if (existingPost) {
+    //     existingPost.reactions[reaction]++;
+    //   }
+    // },
     postUpdated(state, action: PayloadAction<PostUpdate>) {
-      const { id, title, content } = action.payload;
-      const existingPost = state.posts.find((post) => post.id === id);
+      const { id, title, content } = action.payload
+      const existingPost = state.posts.find((post) => post.id === id)
       if (existingPost) {
-        existingPost.title = title;
-        existingPost.content = content;
+        existingPost.title = title
+        existingPost.content = content
       }
     },
-    reactionAdded(
-      state,
-      action: PayloadAction<{ postId: string; reaction: ReactionName }>
-    ) {
-      const { postId, reaction } = action.payload;
-      const existingPost = state.posts.find((post) => post.id === postId);
+    reactionAdded(state, action: PayloadAction<{ postId: string; reaction: ReactionName }>) {
+      const { postId, reaction } = action.payload
+      const existingPost = state.posts.find((post) => post.id === postId)
       if (existingPost) {
-        existingPost.reactions[reaction]++;
+        existingPost.reactions[reaction]++
       }
     },
   },
@@ -117,9 +141,12 @@ export const postsSlice = createSlice({
       state.status = 'rejected'
       state.error = action.error.message ?? 'Unknown Error'
     })
+    .addCase(addNewPost.fulfilled, (state, action) => {
+      state.posts.push(action.payload)
+    })
   },
 });
-export const { postAdded, postUpdated, reactionAdded } = postsSlice.actions;
+export const { postUpdated, reactionAdded } = postsSlice.actions;
 export default postsSlice.reducer;
 
 export const selectAllPosts = (state: RootState) => state.posts.posts;
