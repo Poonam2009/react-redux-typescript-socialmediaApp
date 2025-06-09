@@ -1,7 +1,7 @@
 import { createSlice, nanoid, type PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '../../app/store';
-import { userLoggedOut } from '../auth/authSlice';
-import {createAppAsyncThunk} from '../../app/withTypes'
+import { logout } from '../auth/authSlice';
+import { createAppAsyncThunk } from '../../app/withTypes'
 import { client } from '../../api/client';
 
 
@@ -9,14 +9,14 @@ export const fetchPosts = createAppAsyncThunk('posts/fetchPosts', async () => {
   const response = await client.get<Post[]>('/fakeApi/posts');
   return response.data;
 },
-{
-  condition(argument, thunkApi) {
-    const postsStatus = selectPostsStatus(thunkApi.getState())
-    if (postsStatus !== 'idle') {
-      return false
+  {
+    condition(argument, thunkApi) {
+      const postsStatus = selectPostsStatus(thunkApi.getState())
+      if (postsStatus !== 'idle') {
+        return false
+      }
     }
   }
-}
 )
 
 export interface Reactions {
@@ -127,23 +127,23 @@ export const postsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-    .addCase(userLoggedOut, () => {
-      return initialState;
-    })
-    .addCase(fetchPosts.pending, (state) => {
-      state.status = 'pending'
-    })
-    .addCase(fetchPosts.fulfilled, (state, action) => {
-      state.status = 'succeeded'
-      state.posts.push(...action.payload)
-    })
-    .addCase(fetchPosts.rejected, (state, action) => {
-      state.status = 'rejected'
-      state.error = action.error.message ?? 'Unknown Error'
-    })
-    .addCase(addNewPost.fulfilled, (state, action) => {
-      state.posts.push(action.payload)
-    })
+      .addCase(logout.fulfilled, state => {
+        return initialState;
+      })
+      .addCase(fetchPosts.pending, (state) => {
+        state.status = 'pending'
+      })
+      .addCase(fetchPosts.fulfilled, (state, action) => {
+        state.status = 'succeeded'
+        state.posts.push(...action.payload)
+      })
+      .addCase(fetchPosts.rejected, (state, action) => {
+        state.status = 'rejected'
+        state.error = action.error.message ?? 'Unknown Error'
+      })
+      .addCase(addNewPost.fulfilled, (state, action) => {
+        state.posts.push(action.payload)
+      })
   },
 });
 export const { postUpdated, reactionAdded } = postsSlice.actions;
@@ -152,6 +152,12 @@ export default postsSlice.reducer;
 export const selectAllPosts = (state: RootState) => state.posts.posts;
 export const selectPostById = (state: RootState, postId: string) =>
   state.posts.posts.find((post) => post.id === postId);
+
+export const selectPostsByUser = (state: RootState, userId: string) => {
+  const allPosts = selectAllPosts(state)
+  // ❌ This seems suspicious! See more details below
+  return allPosts.filter(post => post.user === userId)
+}
 
 export const selectPostsStatus = (state: RootState) => state.posts.status;
 export const selectPostsError = (state: RootState) => state.posts.error;

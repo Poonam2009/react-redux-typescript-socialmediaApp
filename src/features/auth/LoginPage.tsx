@@ -1,7 +1,8 @@
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { selectAllUsers } from '../users/usersSlice';
-import { userLoggedIn } from './authSlice';
 import { useNavigate } from 'react-router';
+import { login } from './authSlice'
+import React from 'react';
 interface LoginPageFormFields extends HTMLFormControlsCollection {
   username: HTMLSelectElement;
 }
@@ -15,10 +16,10 @@ export const LoginPage = () => {
   const users = useAppSelector(selectAllUsers);
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent<LoginPageFormElements>) => {
+  const handleSubmit = async (e: React.FormEvent<LoginPageFormElements>) => {
     e.preventDefault();
     const username = e.currentTarget.elements.username.value;
-    dispatch(userLoggedIn(username));
+    await dispatch(login(username))
     navigate('/posts');
   };
 
